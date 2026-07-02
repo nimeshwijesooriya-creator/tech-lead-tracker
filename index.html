@@ -1,35 +1,704 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tech Lead Tracker</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>30-Day Tech Lead Study Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#4f46e5">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom scrollbar behavior */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>My Tech Lead Plan</h1>
-            <p>2 Hours / Day • 30 Days</p>
-        </header>
-        
-        <div class="progress-container">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
-        <p class="progress-text" id="progressText">0% Completed</p>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-16 md:pb-0">
 
-        <div id="taskList" class="task-list">
-            <p>Loading tasks from Google Sheets...</p>
+    <div class="max-w-6xl w-full mx-auto p-4 flex-grow flex flex-col md:flex-row gap-6">
+        
+        <!-- Left Sidebar: Controls, Stats & Custom Task Addition -->
+        <div class="w-full md:w-80 shrink-0 flex flex-col gap-5">
+            <!-- App Title Card -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-indigo-600 text-white rounded-xl">
+                        <span class="material-icons text-xl block">terminal</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-slate-900 leading-tight">Tech Lead Prep</h1>
+                        <p class="text-xs text-slate-500">2h/Day • Daily Study Engine</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-4">
+                <h2 class="text-sm font-semibold text-slate-900">Your Progress Hub</h2>
+                
+                <!-- Circular Progress -->
+                <div class="flex items-center gap-4">
+                    <div class="relative w-16 h-16 flex items-center justify-center shrink-0">
+                        <svg class="absolute transform -rotate-90 w-full h-full" viewBox="0 0 36 36">
+                            <path class="text-slate-100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path id="progressRing" class="text-indigo-600 transition-all duration-500" stroke-width="3" stroke-dasharray="0, 100" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <span id="progressPercent" class="text-sm font-bold text-slate-800">0%</span>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Completed Tasks</p>
+                        <div class="flex items-baseline gap-1">
+                            <span id="completedCount" class="text-2xl font-bold text-slate-800">0</span>
+                            <span id="totalCount" class="text-sm text-slate-400">/30</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-px bg-slate-100"></div>
+
+                <!-- Custom Stats Breakdowns -->
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="p-2 bg-slate-50 rounded-xl">
+                        <span class="text-xs text-slate-500 block">Streak</span>
+                        <span id="streakDays" class="text-lg font-bold text-slate-800">0 Days</span>
+                    </div>
+                    <div class="p-2 bg-slate-50 rounded-xl">
+                        <span class="text-xs text-slate-500 block">Status</span>
+                        <span id="syncIndicator" class="text-xs font-semibold px-2 py-0.5 mt-1 inline-block rounded-full bg-amber-100 text-amber-800 font-sans">Connecting</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <h3 class="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-1.5">
+                    <span class="material-icons text-indigo-500 text-lg">add_task</span>
+                    Add Custom Milestone
+                </h3>
+                <form id="addTaskForm" class="flex flex-col gap-3" onsubmit="handleAddTask(event)">
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Day Number (1-30)</label>
+                        <input type="number" id="formDay" min="1" max="30" placeholder="e.g. 5" required class="w-full mt-1 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Skill Category</label>
+                        <select id="formCategory" class="w-full mt-1 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-colors">
+                            <option value="Java">Java & Concurrency</option>
+                            <option value="System Design">System Design</option>
+                            <option value="AI & Prompting">AI & Prompting</option>
+                            <option value="English">English Skills</option>
+                            <option value="Leadership">Leadership & Agile</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Task Title</label>
+                        <input type="text" id="formTitle" placeholder="e.g. Practise Spring Cache Integration" required class="w-full mt-1 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+                    <button type="submit" class="w-full mt-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-1.5 shadow-sm shadow-indigo-200">
+                        <span class="material-icons text-base">add</span> Add to Tracker
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Main Panel: Coursework Cards & Sync Diagnostics -->
+        <div class="flex-grow flex flex-col gap-4">
+            
+            <!-- Category Quick-filters -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+                <button onclick="setFilter('All')" class="filter-btn px-4 py-2 text-xs font-semibold rounded-full border border-indigo-600 bg-indigo-600 text-white shadow-sm transition-all whitespace-nowrap" id="filter-All">All Curriculum</button>
+                <button onclick="setFilter('Java')" class="filter-btn px-4 py-2 text-xs font-semibold rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all whitespace-nowrap" id="filter-Java">Java Ecosystem</button>
+                <button onclick="setFilter('System Design')" class="filter-btn px-4 py-2 text-xs font-semibold rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all whitespace-nowrap" id="filter-SystemDesign">System Design</button>
+                <button onclick="setFilter('AI & Prompting')" class="filter-btn px-4 py-2 text-xs font-semibold rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all whitespace-nowrap" id="filter-AIPrompting">AI & Prompting</button>
+                <button onclick="setFilter('English')" class="filter-btn px-4 py-2 text-xs font-semibold rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all whitespace-nowrap" id="filter-English">English Skills</button>
+                <button onclick="setFilter('Leadership')" class="filter-btn px-4 py-2 text-xs font-semibold rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all whitespace-nowrap" id="filter-Leadership">Leadership</button>
+            </div>
+
+            <!-- Dynamic Google Sheet Sync Config Panel -->
+            <div id="diagnosticsCard" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 transition-all">
+                <div class="flex items-start justify-between">
+                    <div class="flex gap-2">
+                        <span class="material-icons text-indigo-600">cloud_sync</span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-900">Google Sheet Cloud Synchronization</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Connected dynamically using your custom script endpoint.</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleDiagnosticsCollapse()" class="text-slate-400 hover:text-slate-600 p-1">
+                        <span id="diagnosticsToggleIcon" class="material-icons block">expand_more</span>
+                    </button>
+                </div>
+
+                <div id="diagnosticsDetails" class="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-4 hidden">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="sheetsUrlInput" placeholder="Paste Google Apps Script URL here" class="flex-grow px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-colors">
+                        <div class="flex gap-2">
+                            <button onclick="saveSyncUrl()" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all">Save Connection</button>
+                            <button onclick="clearSyncUrl()" class="px-3 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-200 active:scale-[0.98] transition-all">Disconnect</button>
+                        </div>
+                    </div>
+
+                    <!-- Debugging / Setup Assistance Guide -->
+                    <div class="bg-indigo-50/50 p-4 rounded-xl text-xs text-indigo-950 flex flex-col gap-2">
+                        <p class="font-bold flex items-center gap-1 text-indigo-800">
+                            <span class="material-icons text-sm">info</span> Setup Instructions to Prevent "Error Loading Tasks"
+                        </p>
+                        <ol class="list-decimal pl-4 flex flex-col gap-1 text-slate-600">
+                            <li>Inside your Apps Script editor, click <strong>Deploy > New Deployment</strong>.</li>
+                            <li>Set "Execute as" to <strong>Me</strong> (your email) and "Who has access" to <strong>Anyone</strong>.</li>
+                            <li>Copy the web app URL. Ensure it ends in <strong>/exec</strong> (URLs ending in <strong>/dev</strong> will trigger CORS network errors).</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Grid & Main Display Area -->
+            <div id="taskList" class="flex flex-col gap-3">
+                <!-- Javascript will render tasks directly inside here -->
+            </div>
+
+            <!-- Clear & Reset Options Footer -->
+            <div class="flex items-center justify-between px-2 py-3">
+                <p class="text-xs text-slate-400">PWA Offline-Ready App</p>
+                <button onclick="confirmReset()" class="text-xs font-semibold text-rose-600 hover:text-rose-800 flex items-center gap-1 transition-all">
+                    <span class="material-icons text-sm">restart_alt</span> Reset Progress
+                </button>
+            </div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Detailed Day Activity Guide Dialog Modal -->
+    <div id="studyModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-white rounded-3xl shadow-xl border border-slate-100 max-w-md w-full overflow-hidden transform scale-95 transition-transform duration-300" id="studyModalContainer">
+            <div class="p-6">
+                <div class="flex justify-between items-start">
+                    <span id="modalDay" class="px-2.5 py-1 text-xs font-bold bg-indigo-50 text-indigo-700 rounded-lg">Day 1</span>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                <h4 id="modalTitle" class="text-lg font-bold text-slate-900 mt-3">JVM Internals & GC Tuning</h4>
+                <div id="modalCategoryBadge" class="mt-1">
+                    <span class="px-2 py-0.5 text-[10px] uppercase font-extrabold tracking-wider bg-emerald-100 text-emerald-800 rounded-full">Java Ecosystem</span>
+                </div>
+
+                <div class="h-px bg-slate-100 my-4"></div>
+
+                <!-- 2-Hour Daily Breakdown Matrix -->
+                <div class="flex flex-col gap-4">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">2-Hour Daily Schedule Breakdown</p>
+                    
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 shrink-0 flex items-center justify-center text-slate-600 font-bold text-xs">1</div>
+                        <div>
+                            <h5 class="text-sm font-semibold text-slate-900">Theory & Architecture Focus (45 Mins)</h5>
+                            <p id="modalTheory" class="text-xs text-slate-500 mt-1">Grasp core memory allocation strategy. Learn Heap vs Stack optimization.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 shrink-0 flex items-center justify-center text-slate-600 font-bold text-xs">2</div>
+                        <div>
+                            <h5 class="text-sm font-semibold text-slate-900">Hands-on Coding Lab (45 Mins)</h5>
+                            <p id="modalCoding" class="text-xs text-slate-500 mt-1">Configure Spring properties file to test specific Garbage Collectors.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 shrink-0 flex items-center justify-center text-slate-600 font-bold text-xs">3</div>
+                        <div>
+                            <h5 class="text-sm font-semibold text-slate-900">English Communication Workshop (30 Mins)</h5>
+                            <p id="modalEnglish" class="text-xs text-slate-500 mt-1">Record a 3-minute video explaining your configuration choice in professional English.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-slate-50 p-4 flex gap-2">
+                <button id="modalCheckboxBtn" onclick="toggleTaskFromModal()" class="flex-grow py-3 px-4 text-center text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all">
+                    Mark as Completed
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+        // Core 30-Day Master Curriculum Database
+        const DEFAULT_TASKS = [
+            { id: 1, day: 1, cat: "Java", title: "JVM Internals & GC Tuning", theory: "Learn JVM memory layouts: Young, Old, Metaspace. Understand how the different collectors impact CPU.", coding: "Configure microbenchmarks using JMH. Use GC log analyzer tools on local microservices.", english: "Deliver a simulated presentation detailing why you recommend G1GC for low-latency APIs." },
+            { id: 2, day: 2, cat: "Java", title: "Concurrency & Thread Safety", theory: "Study Thread Pools, ForkJoinPool, volatile keyword, and memory barriers under the JMM.", coding: "Write a thread-safe cache engine using ReentrantLock and ConcurrentHashMap.", english: "Summarize the difference between synchronization mechanisms in an email draft." },
+            { id: 3, day: 3, cat: "Java", title: "Stream API & Lazy Evaluation", theory: "Master stream pipelines, parallel streams, custom collectors, and functional patterns.", coding: "Refactor a series of nested loops into elegant, non-blocking Stream executions.", english: "Explain lazy evaluations in Streams out loud in under two minutes with no filler words." },
+            { id: 4, day: 4, cat: "Java", title: "Spring Boot Performance", theory: "Learn about bean initialization cycles, memory profiling, and connection pooling tuning.", coding: "Configure HikariCP pool sizes. Profile memory footprint with JProfiler.", english: "Explain Spring profile configurations to a simulated business manager." },
+            { id: 5, day: 5, cat: "Java", title: "Modularization & Project Jigsaw", theory: "Analyze Java modules, module-path, dependency boundaries, and encapsulation.", coding: "Convert an existing multi-module Maven project into Java Platform modules.", english: "Construct a clear design defense advocating module modularity on a design call." },
+            { id: 6, day: 6, cat: "System Design", title: "CAP Theorem & Partitioning", theory: "Grasp Consistency vs Availability in real-world clusters. Read Cassandra architectural digests.", coding: "Setup dynamic master-slave DB fallbacks in Spring Boot profiles.", english: "Defend your choice of CP or AP database configurations in structural system architecture." },
+            { id: 7, day: 7, cat: "System Design", title: "Load Balancing Strategies", theory: "Study Layer 4 vs Layer 7 load balancing algorithms: round-robin, least-connections, hashing.", coding: "Configure Nginx routing configurations locally with weighting profiles.", english: "Practice presenting a network topology diagrams cleanly to non-technical stakeholders." },
+            { id: 8, day: 8, cat: "System Design", title: "Caching (Redis/Memcached)", theory: "Learn Cache-aside, Write-through, Write-behind patterns, and eviction policies.", coding: "Integrate Redis Cache into a Spring application using Custom Serializers.", english: "Roleplay answering: 'How do you handle cache invalidation at scale?'" },
+            { id: 9, day: 9, cat: "System Design", title: "Database Sharding & Scaling", theory: "Study range-based sharding, directory-based sharding, and consistent hashing algorithms.", coding: "Configure a sharded database setup using ShardingSphere in Spring Boot.", english: "Write a complete Architectural Decision Record (ADR) explaining database sharding." },
+            { id: 10, day: 10, cat: "System Design", title: "Microservices & API Gateways", theory: "Understand routing, rate limiting, token bucket algorithms, and security filters.", coding: "Configure Spring Cloud Gateway routing rules with custom rate-limiting filters.", english: "Pitch the adoption of an API Gateway solution to an engineering manager." },
+            { id: 11, day: 11, cat: "Leadership", title: "Mentoring & Skill Growth", theory: "Learn how to build technical career progression paths and construct healthy feedback loops.", coding: "Draft a mock growth template outlining core Java competencies for junior hires.", english: "Deliver a simulated positive and constructive career feedback session verbally." },
+            { id: 12, day: 12, cat: "Leadership", title: "Conflict Resolution in Teams", theory: "Study negotiation structures and the Crucial Conversations framework.", coding: "Map out the dependencies of a high-friction software delivery deadline to resolve blocks.", english: "Practice expressing design concerns without alienating members during code discussions." },
+            { id: 13, day: 13, cat: "Leadership", title: "Agile Project Management", theory: "Understand capacity planning, backlog refinement, velocity metrics, and burndown.", coding: "Create a visual workflow representation showing dependencies between epics.", english: "Facilitate a simulated sprint retrospective outlining process improvements." },
+            { id: 14, day: 14, cat: "Leadership", title: "Stakeholder Communication", theory: "Learn to translate complex architectural milestones into value-driven business language.", coding: "Create a technical-to-executive dictionary for system failures.", english: "Deliver a 3-minute summary explaining why a technical debt task prioritizes feature builds." },
+            { id: 15, day: 15, cat: "Leadership", title: "Technical Strategy Roadmap", theory: "Learn how to evaluate technical debt, plan product updates, and write roadmaps.", coding: "Draft a roadmap chart identifying major technical migrations for a platform.", english: "Pitch the migration of legacy monolithic stacks to modern microservices." },
+            { id: 16, day: 16, cat: "AI & Prompting", title: "AI-Driven Code Generation", theory: "Understand contextual tokens, formatting structures, and few-shot examples.", coding: "Write prompts that generate secure, optimized Spring Boot repositories.", english: "Construct instructions on how engineers should validate AI outputs before commit." },
+            { id: 17, day: 17, cat: "AI & Prompting", title: "Architectural Prompting", theory: "Learn how to supply architecture specifications to AI to find vulnerabilities.", coding: "Write an architectural prompt that scans a database design for scalability flaws.", english: "Review critique reports verbally in English, highlighting the high-priority points." },
+            { id: 18, day: 18, cat: "AI & Prompting", title: "AI-Assisted Code Reviews", theory: "Understand how to automate static code analyses and security scans using prompts.", coding: "Create a pre-commit prompt script checking code for SQL injection.", english: "Practice delivering feedback that is constructive and direct based on AI scans." },
+            { id: 19, day: 19, cat: "AI & Prompting", title: "LLM Orchestration & Flows", theory: "Study chains, agents, memory pools, and how to chain specialized queries.", coding: "Build a mock pipeline processing user technical questions using custom agents.", english: "Draft technical slides explaining agentic systems workflows in plain English." },
+            { id: 20, day: 20, cat: "AI & Prompting", title: "Vector DBs & RAG Frameworks", theory: "Understand embeddings, similarity metrics, document splitting, and semantic searches.", coding: "Configure Spring AI locally, connecting it to a mock vectorized context database.", english: "Explain vector retrieval mechanisms to a colleague who has only used SQL databases." },
+            { id: 21, day: 21, cat: "English", title: "Technical Writing for Leads", theory: "Study how to construct clear, action-driven, and highly readable technical docs.", coding: "Document a complex architecture choosing structured formatting, headings, and lists.", english: "Write a system status incident report summarizing a major service outage clearly." },
+            { id: 22, day: 22, cat: "English", title: "Presenting to Leadership", theory: "Learn the pyramid principle: starting with the main conclusion and backing it with data.", coding: "Extract metric trends from logs to back up database scaling requests.", english: "Practice presenting slide decks with clear transition statements." },
+            { id: 23, day: 23, cat: "English", title: "Active Listening & Syncs", theory: "Learn techniques for paraphrasing, checking understanding, and keeping meetings focused.", coding: "Build a meeting template with clear goals, agendas, and assigned action items.", english: "Simulate redirecting off-topic technical discussions back to agenda items." },
+            { id: 24, day: 24, cat: "English", title: "Pitching New Architecture", theory: "Understand how to present cost-benefit metrics, migration paths, and risk factors.", coding: "Build a migration checklist detailing risks and rollback plans.", english: "Present a mock pitch defending migration strategies against potential setbacks." },
+            { id: 25, day: 25, cat: "English", title: "Intercultural Communication", theory: "Study communication styles: direct vs. indirect, and low-context vs. high-context cultures.", coding: "Construct team check-in templates suited for geographically distributed developers.", english: "Practice framing requests to be polite and clear for distributed teams." },
+            { id: 26, day: 26, cat: "Java", title: "Testing, Mockito & MockMvc", theory: "Master unit testing, integration testing pipelines, mocking scopes, and controller tests.", coding: "Write extensive controller tests using Spring MockMvc and custom test scopes.", english: "Explain why code coverage metrics are not the sole measure of software quality." },
+            { id: 27, day: 27, cat: "System Design", title: "Message Queues & Event Flows", theory: "Study event-driven architectures: Kafka partition counts, offset management, and consumers.", coding: "Implement Kafka producers/consumers with dead-letter queue exception handlings.", english: "Draft documentation describing how an event processing failure is recovered from." },
+            { id: 28, day: 28, cat: "Leadership", title: "Incident Management & RCA", theory: "Learn standard operational processes: severity classifications, resolution lanes, and RCAs.", coding: "Draft a Root Cause Analysis (RCA) layout detailing a thread execution failure.", english: "Verbally explain an incident's cause, impact, and preventive plan in a post-mortem." },
+            { id: 29, day: 29, cat: "AI & Prompting", title: "AI Ethics & Enterprise Integration", theory: "Study data privacy policies, prompt injection vulnerabilities, and corporate compliance.", coding: "Establish systemic prompt boundaries ensuring PII is sanitized before model delivery.", english: "Explain AI data usage and compliance rules clearly to product stakeholders." },
+            { id: 30, day: 30, cat: "System Design", title: "Final Mock Arch Interview", theory: "Review standard system architectures: URL shorteners, payment processors, and file shares.", coding: "Diagram a complete, horizontally scalable, multi-region database payment architecture.", english: "Conduct a 45-minute continuous explanation of your system design verbally." }
+        ];
+
+        let state = {
+            tasks: [],
+            currentFilter: 'All',
+            // Pre-configured with user's exact Apps Script endpoint!
+            syncUrl: 'https://script.google.com/macros/s/AKfycbxkaYS7nCTbsJX6mTEbXf5P5LG_G8R6fQZBbc3WpUWffHzRxNVG0iV8U5gRI373J8Wy/exec',
+            isOnline: true,
+            selectedTaskId: null
+        };
+
+        function initApp() {
+            // Write connection URL to visual input field for transparency
+            document.getElementById('sheetsUrlInput').value = state.syncUrl;
+            document.getElementById('syncIndicator').innerText = "Online (Sync)";
+            document.getElementById('syncIndicator').className = "text-xs font-semibold px-2 py-0.5 mt-1 inline-block rounded-full bg-emerald-100 text-emerald-800";
+            
+            // Check if there is a local stored override url
+            const storedUrl = localStorage.getItem('tech_lead_sync_url');
+            if (storedUrl) {
+                state.syncUrl = storedUrl;
+                document.getElementById('sheetsUrlInput').value = storedUrl;
+            }
+
+            // Load Task list from Active Sync Engine
+            loadTasks();
         }
+
+        async function loadTasks() {
+            if (state.isOnline && state.syncUrl) {
+                showLoadingState(true);
+                try {
+                    const response = await fetch(state.syncUrl, { redirect: 'follow' });
+                    const sheetTasks = await response.json();
+                    
+                    // Merge local modifications with sheets database
+                    mergeTasks(sheetTasks);
+                    showLoadingState(false);
+                } catch (error) {
+                    console.error("Sheets sync failed:", error);
+                    showLoadingState(false);
+                    showNetworkErrorUI();
+                    fallbackToLocalStorage();
+                }
+            } else {
+                fallbackToLocalStorage();
+            }
+        }
+
+        function fallbackToLocalStorage() {
+            const localData = localStorage.getItem('tech_lead_tasks');
+            if (localData) {
+                state.tasks = JSON.parse(localData);
+            } else {
+                state.tasks = [...DEFAULT_TASKS];
+                saveToLocalStorage();
+            }
+            renderTasks();
+            updateProgressMetrics();
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('tech_lead_tasks', JSON.stringify(state.tasks));
+        }
+
+        function mergeTasks(sheetTasks) {
+            // Re-map sheet tasks into our interactive curriculum
+            const merged = DEFAULT_TASKS.map(defTask => {
+                const matched = sheetTasks.find(s => s.id === defTask.id || s.task === defTask.title);
+                return {
+                    ...defTask,
+                    done: matched ? matched.status : false
+                };
+            });
+
+            // Keep custom injected items (ids greater than default pool)
+            const customItems = sheetTasks.filter(s => s.id > 30);
+            customItems.forEach(c => {
+                if (!merged.some(m => m.id === c.id)) {
+                    merged.push({
+                        id: c.id,
+                        day: parseInt(c.date.replace(/\D/g, '')) || 30,
+                        cat: "Custom",
+                        title: c.task,
+                        done: c.status,
+                        theory: "Custom added objective.",
+                        coding: "Custom added hands-on benchmark.",
+                        english: "Explain your execution choice."
+                    });
+                }
+            });
+
+            state.tasks = merged;
+            saveToLocalStorage();
+            renderTasks();
+            updateProgressMetrics();
+        }
+
+        function renderTasks() {
+            const container = document.getElementById('taskList');
+            container.innerHTML = '';
+
+            const filtered = state.tasks.filter(t => {
+                if (state.currentFilter === 'All') return true;
+                return t.cat.toLowerCase() === state.currentFilter.toLowerCase();
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white p-8 rounded-2xl border border-dashed border-slate-200 text-center text-slate-400">
+                        <span class="material-icons text-3xl block mb-2">inbox</span>
+                        <p class="text-sm">No tasks added to this category yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort by day order
+            filtered.sort((a,b) => a.day - b.day);
+
+            filtered.forEach(task => {
+                const card = document.createElement('div');
+                card.className = `task-card bg-white p-4 rounded-2xl border transition-all flex items-center gap-4 cursor-pointer hover:shadow-sm ${task.done ? 'border-slate-100 opacity-60' : 'border-slate-100'}`;
+                card.onclick = (e) => {
+                    // Prevent detail modal from firing if checkbox clicked directly
+                    if (e.target.tagName !== 'INPUT' && !e.target.closest('.checkbox-wrap')) {
+                        openModal(task.id);
+                    }
+                };
+
+                const isChecked = task.done ? 'checked' : '';
+                const catColors = getCategoryColors(task.cat);
+
+                card.innerHTML = `
+                    <div class="checkbox-wrap flex items-center shrink-0">
+                        <input type="checkbox" ${isChecked} onchange="toggleTaskStatus(${task.id}, this.checked)" class="w-5 h-5 accent-indigo-600 rounded cursor-pointer">
+                    </div>
+                    <div class="flex-grow">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-[10px] font-bold uppercase ${catColors.bg} ${catColors.text} px-2 py-0.5 rounded-full">${task.cat}</span>
+                            <span class="text-xs font-semibold text-indigo-600">Day ${task.day}</span>
+                        </div>
+                        <h4 class="text-sm font-semibold text-slate-800 mt-1 leading-tight ${task.done ? 'line-through text-slate-400' : ''}">${task.title}</h4>
+                    </div>
+                    <span class="material-icons text-slate-300 text-lg hover:text-slate-500">chevron_right</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function getCategoryColors(cat) {
+            const normalized = cat.toLowerCase();
+            if (normalized === 'java') return { bg: 'bg-orange-50', text: 'text-orange-700' };
+            if (normalized === 'system design') return { bg: 'bg-emerald-50', text: 'text-emerald-700' };
+            if (normalized === 'ai & prompting' || normalized === 'ai') return { bg: 'bg-purple-50', text: 'text-purple-700' };
+            if (normalized === 'english') return { bg: 'bg-sky-50', text: 'text-sky-700' };
+            return { bg: 'bg-indigo-50', text: 'text-indigo-700' };
+        }
+
+        function updateProgressMetrics() {
+            const completed = state.tasks.filter(t => t.done).length;
+            const total = state.tasks.length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            document.getElementById('completedCount').innerText = completed;
+            document.getElementById('totalCount').innerText = `/${total}`;
+            document.getElementById('progressPercent').innerText = `${percentage}%`;
+            
+            // Adjust circular ring
+            const ring = document.getElementById('progressRing');
+            ring.setAttribute('stroke-dasharray', `${percentage}, 100`);
+
+            // Calculate current streak
+            calculateStreak();
+        }
+
+        function calculateStreak() {
+            const completedDays = [...new Set(state.tasks.filter(t => t.done).map(t => t.day))].sort((a,b) => b-a);
+            
+            let streak = 0;
+            if (completedDays.length > 0) {
+                streak = 1;
+                for (let i = 0; i < completedDays.length - 1; i++) {
+                    if (completedDays[i] - completedDays[i+1] === 1) {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            document.getElementById('streakDays').innerText = `${streak} ${streak === 1 ? 'Day' : 'Days'}`;
+        }
+
+        function setFilter(category) {
+            state.currentFilter = category;
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = "filter-btn px-4 py-2 text-xs font-semibold rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all whitespace-nowrap";
+            });
+
+            const safeId = category.replace(/\s/g, '');
+            const targetBtn = document.getElementById(`filter-${safeId}`);
+            if (targetBtn) {
+                targetBtn.className = "filter-btn px-4 py-2 text-xs font-semibold rounded-full border border-indigo-600 bg-indigo-600 text-white shadow-sm transition-all whitespace-nowrap";
+            }
+
+            renderTasks();
+        }
+
+        async function toggleTaskStatus(taskId, isDone) {
+            const taskIndex = state.tasks.findIndex(t => t.id === taskId);
+            if (taskIndex > -1) {
+                state.tasks[taskIndex].done = isDone;
+                updateProgressMetrics();
+                saveToLocalStorage();
+                renderTasks();
+
+                if (state.isOnline && state.syncUrl) {
+                    try {
+                        await fetch(state.syncUrl, {
+                            method: 'POST',
+                            body: JSON.stringify({ row: taskId, status: isDone }),
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                        });
+                    } catch (error) {
+                        console.error("Cloud status sync failed:", error);
+                        showNetworkErrorUI();
+                    }
+                }
+            }
+        }
+
+        function handleAddTask(e) {
+            e.preventDefault();
+            const dayNum = parseInt(document.getElementById('formDay').value);
+            const category = document.getElementById('formCategory').value;
+            const title = document.getElementById('formTitle').value;
+
+            const newTask = {
+                id: state.tasks.length + 1,
+                day: dayNum,
+                cat: category,
+                title: title,
+                done: false,
+                theory: `Deep-dive study: ${title}`,
+                coding: `Conduct hands-on optimization: ${title}`,
+                english: "Verbally explain your execution choice using precise architectural vocabulary."
+            };
+
+            state.tasks.push(newTask);
+            saveToLocalStorage();
+            renderTasks();
+            updateProgressMetrics();
+
+            document.getElementById('formDay').value = '';
+            document.getElementById('formTitle').value = '';
+            
+            if (state.isOnline && state.syncUrl) {
+                syncNewTaskToSheet(newTask);
+            }
+        }
+
+        async function syncNewTaskToSheet(task) {
+            try {
+                await fetch(state.syncUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({ row: task.id, status: false, task: task.title, date: `Day ${task.day}` }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+            } catch (error) {
+                console.error("Failed to append task online:", error);
+            }
+        }
+
+        function openModal(taskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            state.selectedTaskId = taskId;
+
+            document.getElementById('modalDay').innerText = `Day ${task.day}`;
+            document.getElementById('modalTitle').innerText = task.title;
+            
+            const badge = document.getElementById('modalCategoryBadge');
+            const colors = getCategoryColors(task.cat);
+            badge.innerHTML = `<span class="px-2 py-0.5 text-[10px] uppercase font-extrabold tracking-wider ${colors.bg} ${colors.text} rounded-full">${task.cat}</span>`;
+
+            document.getElementById('modalTheory').innerText = task.theory || "Review essential specifications and guidelines.";
+            document.getElementById('modalCoding').innerText = task.coding || "Develop structural elements or implement code snippets.";
+            document.getElementById('modalEnglish').innerText = task.english || "Practice delivering feedback constructive to target audiences.";
+
+            const checkboxBtn = document.getElementById('modalCheckboxBtn');
+            if (task.done) {
+                checkboxBtn.innerText = "Mark as Incomplete";
+                checkboxBtn.className = "flex-grow py-3 px-4 text-center text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl transition-all";
+            } else {
+                checkboxBtn.innerText = "Mark as Completed";
+                checkboxBtn.className = "flex-grow py-3 px-4 text-center text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all";
+            }
+
+            const modal = document.getElementById('studyModal');
+            const container = document.getElementById('studyModalContainer');
+            modal.classList.remove('pointer-events-none');
+            modal.classList.add('opacity-100');
+            container.classList.remove('scale-95');
+            container.classList.add('scale-100');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('studyModal');
+            const container = document.getElementById('studyModalContainer');
+            modal.classList.add('pointer-events-none');
+            modal.classList.remove('opacity-100');
+            container.classList.add('scale-95');
+            container.classList.remove('scale-100');
+            state.selectedTaskId = null;
+        }
+
+        function toggleTaskFromModal() {
+            if (state.selectedTaskId !== null) {
+                const task = state.tasks.find(t => t.id === state.selectedTaskId);
+                if (task) {
+                    toggleTaskStatus(task.id, !task.done);
+                    closeModal();
+                }
+            }
+        }
+
+        function toggleDiagnosticsCollapse() {
+            const details = document.getElementById('diagnosticsDetails');
+            const icon = document.getElementById('diagnosticsToggleIcon');
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+                icon.innerText = "expand_less";
+            } else {
+                details.classList.add('hidden');
+                icon.innerText = "expand_more";
+            }
+        }
+
+        function saveSyncUrl() {
+            const url = document.getElementById('sheetsUrlInput').value.trim();
+            if (url) {
+                localStorage.setItem('tech_lead_sync_url', url);
+                state.syncUrl = url;
+                state.isOnline = true;
+                document.getElementById('syncIndicator').innerText = "Online (Sync)";
+                document.getElementById('syncIndicator').className = "text-xs font-semibold px-2 py-0.5 mt-1 inline-block rounded-full bg-emerald-100 text-emerald-800";
+                
+                showSyncNotification();
+                loadTasks();
+            }
+        }
+
+        function clearSyncUrl() {
+            localStorage.removeItem('tech_lead_sync_url');
+            state.syncUrl = '';
+            state.isOnline = false;
+            document.getElementById('sheetsUrlInput').value = '';
+            document.getElementById('syncIndicator').innerText = "Offline";
+            document.getElementById('syncIndicator').className = "text-xs font-semibold px-2 py-0.5 mt-1 inline-block rounded-full bg-amber-100 text-amber-800";
+            
+            fallbackToLocalStorage();
+        }
+
+        function showSyncNotification() {
+            const indicatorCard = document.getElementById('diagnosticsCard');
+            const originalBorder = indicatorCard.className;
+            indicatorCard.className += " border-indigo-500 ring-2 ring-indigo-200 transition-all duration-300";
+            setTimeout(() => {
+                indicatorCard.className = originalBorder;
+            }, 2000);
+        }
+
+        function showLoadingState(show) {
+            const container = document.getElementById('taskList');
+            if (show) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12 gap-3 text-slate-400">
+                        <svg class="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-xs font-semibold">Connecting to Google Sheet...</p>
+                    </div>
+                `;
+            }
+        }
+
+        function showNetworkErrorUI() {
+            const details = document.getElementById('diagnosticsDetails');
+            details.classList.remove('hidden');
+            document.getElementById('diagnosticsToggleIcon').innerText = "expand_less";
+            
+            const errorBanner = document.createElement('div');
+            errorBanner.className = "p-3 bg-rose-50 text-rose-800 border border-rose-200 text-xs rounded-xl flex items-start gap-2 mb-3";
+            errorBanner.innerHTML = `
+                <span class="material-icons text-sm mt-0.5">error_outline</span>
+                <div>
+                    <span class="font-bold">Sync Failed:</span> Most likely a CORS / Deployment issue. Review the setup guide below to ensure your Apps Script is set to 'Anyone' and ends in '/exec'. Fallback to Local Storage activated.
+                </div>
+            `;
+            const container = document.getElementById('taskList');
+            container.insertBefore(errorBanner, container.firstChild);
+        }
+
+        function confirmReset() {
+            const confirmation = confirm("Are you sure you want to reset all your progress data?");
+            if (confirmation) {
+                state.tasks.forEach(t => t.done = false);
+                saveToLocalStorage();
+                renderTasks();
+                updateProgressMetrics();
+                
+                if (state.isOnline && state.syncUrl) {
+                    state.tasks.forEach(t => {
+                        toggleTaskStatus(t.id, false);
+                    });
+                }
+            }
+        }
+
+        window.onload = function() {
+            initApp();
+        };
     </script>
 </body>
 </html>
